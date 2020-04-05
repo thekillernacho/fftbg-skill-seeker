@@ -54,6 +54,8 @@
     <script>
         $(async function () {
             const table = new Tabulator("#table", {
+                height: "600px",
+                layout:"fitColumns",
                 columns: [
                     { title: "Skill Name", field: "Name" },
                     { title: "Last Dropped", field: "LastDropped" },
