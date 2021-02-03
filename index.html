@@ -86,12 +86,15 @@
                 return skills.sort((s1, s2) => s1.Index > s2.Index).filter((skill, index, array) => array.findIndex(ele => ele.Name == skill.Name) === index);
             }
 
+			// arbitrary limit of the last 5000 tournaments; should be good enough
+			const limit = 5000;
+
             try {
                 $("#message")
                     .empty()
                     .text("Loading...");
 
-                const response = await fetch("https://fftbg.com/api/tournaments");
+                const response = await fetch("https://fftbg.com/api/tournaments?limit=" + limit);
                 const data = await response.json();
 
                 table.setData(filterData(data));
