@@ -78,26 +78,45 @@
             });
 
             $("#filter-value").keyup(() => {
-                table.setFilter("Name", "like", $("#filter-value").val());
+                applyFilter();
             });
 
-            function filterData(tournamentsJson) {
-                var skills = tournamentsJson.map((t, index) => ({ "Name": t.SkillDrop, "LastDropped": t.LastMod, Index: index }));
+            function applyFilter() {
+                table.setFilter("Name", "like", $("#filter-value").val());
+            }
+
+            function filterData(tournamentsJson, offset) {
+                var skills = tournamentsJson.map((t, index) => ({ "Name": t.SkillDrop, "LastDropped": t.LastMod, Index: index + offset }));
                 return skills.sort((s1, s2) => s1.Index > s2.Index).filter((skill, index, array) => array.findIndex(ele => ele.Name == skill.Name) === index);
             }
 
-			// arbitrary limit of the last 5000 tournaments; should be good enough
-			const limit = 5000;
+            const TOURNAMENT_FETCH_SIZE = 1000;
+            const TOURNAMENT_FETCH_LIMIT = 10000;
+            let TOURNAMENTS = [];
+
+            async function fetchData(url = `https://fftbg.com/api/tournaments?limit=${TOURNAMENT_FETCH_SIZE}`, total = 0) {
+                if (total > TOURNAMENT_FETCH_LIMIT)
+                    return;
+
+                const response = await fetch(url);
+                const next = response.headers.get("Link")?.match(/<([^>]+)>;\s*rel="next"/)[1];
+                TOURNAMENTS = TOURNAMENTS.concat(TOURNAMENTS, filterData(await response.json(), total));
+                TOURNAMENTS = TOURNAMENTS.filter((skill, index, array) => array.findIndex(ele => ele.Name == skill.Name) === index);
+                table.replaceData(TOURNAMENTS);
+                // applyFilter();
+
+                if (next) {
+                    // not awaiting here to let it carry on in the background
+                    fetchData(next, total + TOURNAMENT_FETCH_SIZE);
+                }
+            }
 
             try {
                 $("#message")
                     .empty()
                     .text("Loading...");
 
-                const response = await fetch("https://fftbg.com/api/tournaments?limit=" + limit);
-                const data = await response.json();
-
-                table.setData(filterData(data));
+                await fetchData();
 
                 $("#message")
                     .empty();
